@@ -14,7 +14,7 @@ Any changes you make to your deployed app will be automatically pushed to this r
 
 Your project is live at:
 
-**[https://pawstrips.vercel.app)**
+**[https://pawstrips.vercel.app](https://pawstrips.vercel.app)**
 
 ## Build your app
 
