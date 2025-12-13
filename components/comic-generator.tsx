@@ -30,6 +30,12 @@ async function generateComic(
   })
 
   if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error(
+        "Your image is too large for the server to handle. Please try a smaller photo or one with lower resolution.",
+      )
+    }
+
     const errorData = await response.json().catch(() => ({}))
     throw new Error(errorData.error || "Failed to generate comic")
   }

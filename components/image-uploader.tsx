@@ -14,11 +14,68 @@ interface ImageUploaderProps {
   disabled?: boolean
 }
 
+const MAX_IMAGE_DIMENSION = 1024
+const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024 // 8MB safety cap before resizing
+
+async function resizeImageFile(file: File): Promise<string> {
+  const originalDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result
+      if (typeof result !== "string") {
+        reject(new Error("Failed to read image file"))
+        return
+      }
+      resolve(result)
+    }
+    reader.onerror = () => reject(new Error("Failed to read image file"))
+    reader.readAsDataURL(file)
+  })
+
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+
+      // If the image is already reasonably small, keep as-is
+      if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
+        resolve(originalDataUrl)
+        return
+      }
+
+      if (width > height) {
+        height = (height * MAX_IMAGE_DIMENSION) / width
+        width = MAX_IMAGE_DIMENSION
+      } else {
+        width = (width * MAX_IMAGE_DIMENSION) / height
+        height = MAX_IMAGE_DIMENSION
+      }
+
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) {
+        resolve(originalDataUrl)
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // Use JPEG to keep payload small for the API route
+      const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.8)
+      resolve(resizedDataUrl)
+    }
+    img.onerror = () => reject(new Error("Failed to process image"))
+    img.src = originalDataUrl
+  })
+}
+
 export function ImageUploader({ uploadedImage, onImageUpload, onRemoveImage, disabled = false }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0]
       if (!file) return
 
@@ -27,28 +84,40 @@ export function ImageUploader({ uploadedImage, onImageUpload, onRemoveImage, dis
         return
       }
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string
-        onImageUpload(base64)
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        alert("Please upload an image smaller than 8MB")
+        return
       }
-      reader.readAsDataURL(file)
+
+      try {
+        const base64 = await resizeImageFile(file)
+        onImageUpload(base64)
+      } catch (err) {
+        console.error("Error processing image:", err)
+        alert("Sorry, we couldn't process that image. Please try a different photo.")
+      }
     },
     [onImageUpload],
   )
 
   const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
       const file = event.dataTransfer.files?.[0]
       if (!file || !file.type.startsWith("image/")) return
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string
-        onImageUpload(base64)
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        alert("Please upload an image smaller than 8MB")
+        return
       }
-      reader.readAsDataURL(file)
+
+      try {
+        const base64 = await resizeImageFile(file)
+        onImageUpload(base64)
+      } catch (err) {
+        console.error("Error processing image:", err)
+        alert("Sorry, we couldn't process that image. Please try a different photo.")
+      }
     },
     [onImageUpload],
   )
