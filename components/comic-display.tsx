@@ -1,85 +1,71 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { Card } from "@/components/ui/card"
-import { Download, Share2, Sparkles, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Download, Sparkles, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ComicDisplayProps {
   images: Array<{
-    base64: string
-    mediaType: string
-  }>
-  text: string
-  originalDogImage: string | null
+    base64: string;
+    mediaType: string;
+  }>;
+  text: string;
+  originalDogImage: string | null;
 }
 
-export function ComicDisplay({ images, text, originalDogImage }: ComicDisplayProps) {
-  const comicImage = images[0] // Single comic strip
-  const [isFullscreen, setIsFullscreen] = useState(false)
+export function ComicDisplay({
+  images,
+  text,
+  originalDogImage,
+}: ComicDisplayProps) {
+  const comicImage = images[0]; // Single comic strip
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const closeFullscreen = useCallback(() => {
-    setIsFullscreen(false)
-  }, [])
+    setIsFullscreen(false);
+  }, []);
 
   // Handle escape key to close fullscreen
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        closeFullscreen()
+        closeFullscreen();
       }
-    }
+    };
     if (isFullscreen) {
-      document.addEventListener("keydown", handleEscape)
-      document.body.style.overflow = "hidden"
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
     return () => {
-      document.removeEventListener("keydown", handleEscape)
-      document.body.style.overflow = ""
-    }
-  }, [isFullscreen, closeFullscreen])
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen, closeFullscreen]);
 
   const handleDownload = () => {
-    if (!comicImage) return
-    const link = document.createElement("a")
+    if (!comicImage) return;
+    const link = document.createElement("a");
     link.href = comicImage.base64.startsWith("data:")
       ? comicImage.base64
-      : `data:${comicImage.mediaType};base64,${comicImage.base64}`
-    link.download = `pawstrips-comic.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Check out my dog's comic strip!",
-          text: "I created this awesome comic strip with PawStrips!",
-        })
-      } catch (error) {
-        // User canceled the share - this is normal, not an error
-        if (error instanceof Error && error.name === "AbortError") {
-          return
-        }
-        // Re-throw other errors
-        throw error
-      }
-    }
-  }
+      : `data:${comicImage.mediaType};base64,${comicImage.base64}`;
+    link.download = `pawstrips-comic.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (!comicImage) {
     return (
       <div className="text-center p-12">
         <p className="text-muted-foreground">No comic generated yet.</p>
       </div>
-    )
+    );
   }
 
   const imageSrc = comicImage.base64.startsWith("data:")
     ? comicImage.base64
-    : `data:${comicImage.mediaType};base64,${comicImage.base64}`
+    : `data:${comicImage.mediaType};base64,${comicImage.base64}`;
 
   return (
     <div className="space-y-8 animate-bounce-in">
@@ -170,15 +156,6 @@ export function ComicDisplay({ images, text, originalDogImage }: ComicDisplayPro
           <Download className="w-5 h-5 mr-2" />
           Download Comic Strip
         </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={handleShare}
-          className="px-6 shadow-md hover:shadow-lg transition-all duration-300 bg-transparent hover:scale-105"
-        >
-          <Share2 className="w-5 h-5 mr-2" />
-          Share Adventure
-        </Button>
       </div>
 
       {/* Fullscreen Modal */}
@@ -211,5 +188,5 @@ export function ComicDisplay({ images, text, originalDogImage }: ComicDisplayPro
         </div>
       )}
     </div>
-  )
+  );
 }
